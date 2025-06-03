@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CosmoTune - World Radio Player</title>
+    <!-- Use a reliable online favicon as fallback -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f30e.png"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Only import globe.gl, which includes Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.24.0/dist/globe.gl.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="text-white min-h-screen">
+    <!-- Globe Background -->
+    <div id="globeViz"></div>
+
+    <!-- Auth Modals -->
+    <div id="authModal" class="auth-modal">
+      <div class="auth-content">
+        <button class="close-btn" id="closeAuthModal">&times;</button>
+        <div class="flex mb-8 space-x-4 border-b border-gray-700">
+          <button id="loginTab" class="tab-btn active">Sign In</button>
+          <button id="registerTab" class="tab-btn">Register</button>
+        </div>
+
+        <div id="loginForm">
+          <div class="mb-4">
+            <label class="block text-gray-300 mb-2">Email</label>
+            <input
+              type="email"
+              id="loginEmail"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-gray-300 mb-2">Password</label>
+            <input
+              type="password"
+              id="loginPassword"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <button
+            id="loginBtn"
+            class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+          >
+            Sign In
+          </button>
+          <p class="text-center text-gray-400 mt-4">
+            Don't have an account?
+            <button id="switchToRegister" class="text-blue-400 hover:underline">
+              Register
+            </button>
+          </p>
+        </div>
+
+        <div id="registerForm" class="hidden">
+          <div class="mb-4">
+            <label class="block text-gray-300 mb-2">Username</label>
+            <input
+              type="text"
+              id="registerUsername"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-300 mb-2">Email</label>
+            <input
+              type="email"
+              id="registerEmail"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-gray-300 mb-2">Password</label>
+            <input
+              type="password"
+              id="registerPassword"
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <button
+            id="registerBtn"
+            class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+          >
+            Register
+          </button>
+          <p class="text-center text-gray-400 mt-4">
+            Already have an account?
+            <button id="switchToLogin" class="text-blue-400 hover:underline">
+              Sign In
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-12 relative z-10">
+      <!-- Header -->
+      <header
+        class="flex flex-col md:flex-row justify-between items-center mb-16"
+      >
+        <div class="flex-1 flex items-center mb-6 md:mb-0 justify-start">
+          <a href="index.html" class="focus:outline-none" aria-label="Home">
+            <i class="fas fa-satellite-dish text-4xl text-blue-400 mr-3"></i>
+            <h1
+              class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500"
+            >
+              CosmoTune
+            </h1>
+          </a>
+        </div>
+        <div class="flex-1 flex items-center justify-end space-x-4">
+          <a
+            href="contact.html"
+            class="flex items-center px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 transition text-base font-medium"
+            aria-label="Contact"
+          >
+            <i class="fas fa-envelope mr-2"></i> Contact
+          </a>
+          <div id="authButtons">
+            <button
+              id="openAuthModal"
+              class="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 transition"
+            >
+              <i class="fas fa-user-astronaut mr-2"></i> Sign In
+            </button>
+          </div>
+          <div id="userProfile" class="hidden relative">
+            <div class="user-avatar" id="userAvatar">
+              <span id="avatarInitials">U</span>
+            </div>
+            <div class="dropdown-menu" id="userDropdown">
+              <div class="p-4 border-b border-gray-700">
+                <p class="font-medium" id="dropdownUsername">Username</p>
+                <p class="text-sm text-gray-400" id="dropdownEmail">
+                  user@example.com
+                </p>
+              </div>
+              <ul class="py-1">
+                <li>
+                  <a
+                    href="#"
+                    title="My Favorites"
+                    class="block px-4 py-2 hover:bg-gray-700"
+                    >My Favorites</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    title="History"
+                    class="block px-4 py-2 hover:bg-gray-700"
+                    >History</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    title="Settings"
+                    class="block px-4 py-2 hover:bg-gray-700"
+                    >Settings</a
+                  >
+                </li>
+                <li>
+                  <button
+                    id="logoutBtn"
+                    class="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  >
+                    Logout
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Hero Section -->
+      <section class="text-center mb-20">
+        <h2 class="text-5xl md:text-6xl font-bold mb-6">
+          Tune Into The <span class="text-blue-400">World</span>
+        </h2>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-10">
+          Discover over 30,000 radio stations from every corner of the globe.
+          Explore cultures through music, news, and talk shows in real-time.
+        </p>
+
+        <div class="relative max-w-xl mx-auto">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="Search by country, city, or genre..."
+            class="w-full px-6 py-4 rounded-full bg-gray-900 bg-opacity-70 border border-gray-700 focus:border-blue-500 text-white placeholder-gray-400 search-input"
+          />
+          <button
+            id="searchBtn"
+            class="absolute right-2 top-2 bg-blue-600 hover:bg-blue-700 p-2 rounded-full"
+          >
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Sections -->
+      <section id="featuredSection" class="mb-16">
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-semibold">Featured Stations</h3>
+          <a
+            href="#"
+            id="viewAllBtn"
+            class="text-blue-400 hover:text-blue-300 flex items-center"
+          >
+            View All <i class="fas fa-chevron-right ml-2"></i>
+          </a>
+        </div>
+        <div
+          id="stationsContainer"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <!-- Stations will be dynamically added here -->
+        </div>
+      </section>
+
+      <!-- All Stations Section (hidden by default) -->
+      <section id="allStationsSection" class="mb-16 hidden">
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-semibold">All Stations</h3>
+          <button
+            id="backToFeaturedBtn"
+            class="text-blue-400 hover:text-blue-300 flex items-center"
+          >
+            <i class="fas fa-chevron-left mr-2"></i> Back
+          </button>
+        </div>
+        <div
+          id="allStationsContainer"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <!-- All stations will be dynamically added here -->
+        </div>
+      </section>
+
+      <!-- Favorites Section -->
+      <section
+        id="favoritesSection"
+        class="mb-16 hidden relative bg-gray-900 bg-opacity-70 rounded-xl p-6 backdrop-blur-lg"
+      >
+        <button
+          class="section-close absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-semibold">My Favorites</h3>
+        </div>
+        <div
+          id="favoritesContainer"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <!-- Favorite stations will be dynamically added here -->
+        </div>
+      </section>
+
+      <!-- History Section -->
+      <section
+        id="historySection"
+        class="mb-16 hidden relative bg-gray-900 bg-opacity-70 rounded-xl p-6 backdrop-blur-lg"
+      >
+        <button
+          class="section-close absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-semibold">Recently Played</h3>
+        </div>
+        <div
+          id="historyContainer"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <!-- Recently played stations will be dynamically added here -->
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section
+        id="settingsSection"
+        class="mb-16 hidden relative bg-gray-900 bg-opacity-70 rounded-xl p-6 backdrop-blur-lg"
+      >
+        <button
+          class="section-close absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-semibold">Settings</h3>
+        </div>
+        <div
+          class="max-w-2xl mx-auto bg-gray-900 bg-opacity-70 rounded-xl p-6 backdrop-blur-lg"
+        >
+          <div class="space-y-6">
+            <div>
+              <h4 class="text-lg font-medium mb-4">Account Settings</h4>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-gray-300 mb-2">Username</label>
+                  <input
+                    type="text"
+                    id="settingsUsername"
+                    class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-gray-300 mb-2">Email</label>
+                  <input
+                    type="email"
+                    id="settingsEmail"
+                    class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-gray-300 mb-2">New Password</label>
+                  <input
+                    type="password"
+                    id="settingsNewPassword"
+                    class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                id="saveSettingsBtn"
+                class="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+              >
+                Save Changes
+              </button>
+            </div>
+            <div>
+              <h4 class="text-lg font-medium mb-4">Preferences</h4>
+              <div class="space-y-4">
+                <div class="flex items-center">
+                  <input type="checkbox" id="autoplayToggle" class="mr-3" />
+                  <label for="autoplayToggle">Autoplay stations on click</label>
+                </div>
+                <div>
+                  <label class="block text-gray-300 mb-2">Default Volume</label>
+                  <input
+                    type="range"
+                    id="defaultVolume"
+                    class="volume-slider w-full"
+                    min="0"
+                    max="100"
+                    value="70"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Player Controls -->
+      <div
+        class="fixed bottom-0 left-0 right-0 bg-gray-900 bg-opacity-90 backdrop-blur-lg py-2 px-4 border-t border-gray-800"
+      >
+        <div class="container mx-auto flex flex-col md:flex-row items-center">
+          <div class="flex items-center mb-2 md:mb-0 md:w-1/3">
+            <img
+              id="stationLogo"
+              src="https://placehold.co/40x40/png"
+              alt="Station Logo"
+              class="w-10 h-10 rounded-full mr-3"
+            />
+            <div>
+              <h4 id="stationName" class="text-sm font-medium">Now Playing</h4>
+              <p id="stationLocation" class="text-xs text-gray-400">
+                BBC Radio 1 - London, UK
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-center md:w-1/3">
+            <div class="flex space-x-6 mb-2">
+              <button id="prevBtn" class="text-gray-400 hover:text-white">
+                <i class="fas fa-step-backward"></i>
+              </button>
+              <button
+                id="playPauseBtn"
+                class="bg-blue-600 hover:bg-blue-700 w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <i class="fas fa-pause"></i>
+              </button>
+              <button id="nextBtn" class="text-gray-400 hover:text-white">
+                <i class="fas fa-step-forward"></i>
+              </button>
+            </div>
+            <div class="w-full flex items-center">
+              <span id="currentTime" class="text-xs mr-2">0:00</span>
+              <div class="flex-1 h-1 bg-gray-700 rounded-full">
+                <div
+                  id="progressBar"
+                  class="h-1 bg-blue-500 rounded-full w-0"
+                ></div>
+              </div>
+              <span id="duration" class="text-xs ml-2">0:00</span>
+            </div>
+          </div>
+
+          <div
+            class="flex items-center justify-end space-x-4 md:w-1/3 mt-4 md:mt-0"
+          >
+            <button id="favoriteBtn" class="text-gray-400 hover:text-white">
+              <i class="fas fa-heart"></i>
+            </button>
+            <button id="shuffleBtn" class="text-gray-400 hover:text-white">
+              <i class="fas fa-random"></i>
+            </button>
+            <button id="muteBtn" class="text-gray-400 hover:text-white">
+              <i class="fas fa-volume-up"></i>
+            </button>
+            <div class="flex items-center">
+              <input
+                id="volumeSlider"
+                type="range"
+                min="0"
+                max="100"
+                value="70"
+                class="volume-slider w-24"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="player.js"></script>
+  </body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact - CosmoTune</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="text-white min-h-screen">
+    <div id="globeViz" aria-hidden="true"></div>
+    <div class="container mx-auto px-4 py-12 relative z-10">
+      <header
+        class="flex flex-col md:flex-row justify-between items-center mb-16"
+      >
+        <div class="flex items-center mb-6 md:mb-0">
+          <i
+            class="fas fa-satellite-dish text-4xl text-blue-400 mr-3"
+            aria-hidden="true"
+          ></i>
+          <h1
+            class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500"
+          >
+            CosmoTune
+          </h1>
+        </div>
+        <nav class="flex items-center space-x-4" aria-label="Main navigation">
+          <a
+            href="index.html"
+            class="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 transition"
+            aria-label="Home"
+            >Home</a
+          >
+          <a
+            href="contact.html"
+            class="px-4 py-2 rounded-full bg-blue-700 text-white transition"
+            aria-current="page"
+            >Contact</a
+          >
+        </nav>
+      </header>
+      <main
+        class="max-w-2xl mx-auto bg-gray-900 bg-opacity-80 rounded-xl p-8 backdrop-blur-lg shadow-lg"
+      >
+        <h2 class="text-3xl font-bold mb-6 text-center">Contact Us</h2>
+        <div class="mb-8 text-center text-gray-300 text-base">
+          <p>
+            Thank you for reaching out! While we can't offer direct technical
+            support, we truly value your suggestions and feedback. Every
+            message, feature idea, and bug report is reviewed by our team and
+            helps us make CosmoTune better for everyone.
+          </p>
+        </div>
+        <form class="space-y-6" aria-label="Contact form">
+          <div>
+            <label for="name" class="block text-gray-300 mb-2">Name</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+              aria-label="Your name"
+            />
+          </div>
+          <div>
+            <label for="email" class="block text-gray-300 mb-2">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+              aria-label="Your email"
+            />
+          </div>
+          <div>
+            <label for="message" class="block text-gray-300 mb-2"
+              >Message</label
+            >
+            <textarea
+              id="message"
+              name="message"
+              rows="5"
+              required
+              class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-blue-500 focus:outline-none"
+              aria-label="Your message"
+            ></textarea>
+          </div>
+          <button
+            type="submit"
+            class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition font-semibold"
+            aria-label="Send message"
+          >
+            Send Message
+          </button>
+        </form>
+        <div class="mt-8 text-center text-gray-400">
+          <p>
+            Or email us at
+            <a
+              href="mailto:support@cosmotune.com"
+              class="text-blue-400 underline"
+              >support@cosmotune.com</a
+            >
+          </p>
+        </div>
+      </main>
+    </div>
+    <!-- Toast Notification -->
+    <div
+      id="toastNotification"
+      style="
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        min-width: 200px;
+        max-width: 90vw;
+        padding: 1rem 2rem;
+        border-radius: 9999px;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        color: #fff;
+      "
+    ></div>
+    <script>
+      // Keyboard navigation: focus first input on load
+      window.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("name").focus();
+      });
+      // Modern toast notification with gradient, centered, and longer duration
+      function showToast(message, type = "info") {
+        const toast = document.getElementById("toastNotification");
+        toast.textContent = message;
+        toast.style.background = "linear-gradient(90deg,#3b82f6,#8b5cf6)";
+        toast.style.color =
+          type === "error"
+            ? "#fee2e2"
+            : type === "success"
+            ? "#bbf7d0"
+            : "#fff";
+        toast.style.display = "block";
+        toast.style.opacity = "1";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 500);
+        }, 6000);
+      }
+      // Simple form handler (no backend)
+      document.querySelector("form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        showToast(
+          "Thank you for contacting us! We will get back to you soon.",
+          "success"
+        );
+        this.reset();
+        document.getElementById("name").focus();
+      });
+    </script>
+  </body>
+</html>
