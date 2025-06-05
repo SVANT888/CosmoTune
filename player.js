@@ -84,7 +84,7 @@ window.addEventListener("resize", () => {
 
 // --- Station Fetching and Rendering ---
 // Fetch radio stations from Radio Browser API and update the UI
-async function fetchStations(searchTerm = "") {
+async function fetchStations(searchTerm = "", searchType = "name") {
   const stationsContainer = document.getElementById("stationsContainer");
   stationsContainer.innerHTML = `
     <div class="col-span-3 flex justify-center py-10">
@@ -93,26 +93,72 @@ async function fetchStations(searchTerm = "") {
   `;
 
   try {
-    let url =
-      "https://de1.api.radio-browser.info/json/stations/search?limit=30&hidebroken=true&order=votes&reverse=true";
-    if (searchTerm) {
-      url = `https://de1.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(
-        searchTerm
-      )}&limit=30&hidebroken=true`;
+    // Use multiple API endpoints for better reliability
+    const apiEndpoints = [
+      "https://de1.api.radio-browser.info/json",
+      "https://nl1.api.radio-browser.info/json",
+      "https://at1.api.radio-browser.info/json",
+      "https://fr1.api.radio-browser.info/json",
+    ];
+
+    let url;
+    let response;
+    let finalEndpoint;
+
+    // Try each endpoint until one works
+    for (const endpoint of apiEndpoints) {
+      try {
+        // Build URL based on search type and term
+        if (searchTerm) {
+          // Determine search endpoint based on search type
+          if (searchType === "country") {
+            url = `${endpoint}/stations/bycountry/${encodeURIComponent(
+              searchTerm
+            )}?limit=100&hidebroken=true&order=votes&reverse=true`;
+          } else if (searchType === "tag" || searchType === "genre") {
+            url = `${endpoint}/stations/bytag/${encodeURIComponent(
+              searchTerm
+            )}?limit=100&hidebroken=true&order=votes&reverse=true`;
+          } else {
+            // Default name search
+            url = `${endpoint}/stations/search?name=${encodeURIComponent(
+              searchTerm
+            )}&limit=100&hidebroken=true&order=votes&reverse=true`;
+          }
+        } else {
+          // Get popular stations when no search term - get top voted stations
+          url = `${endpoint}/stations/topvote/100`;
+        }
+
+        console.log(`Trying API endpoint: ${url}`);
+
+        response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "User-Agent": "CosmoTune/1.0",
+            Accept: "application/json",
+          },
+        });
+
+        if (response.ok) {
+          finalEndpoint = endpoint;
+          console.log(`Successfully connected to: ${endpoint}`);
+          break;
+        } else {
+          console.log(`HTTP error ${response.status} from ${endpoint}`);
+        }
+      } catch (endpointError) {
+        console.log(`Failed to connect to ${endpoint}:`, endpointError.message);
+        continue;
+      }
     }
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "CosmoTune Radio Player",
-        Origin: window.location.origin,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
+    if (!response || !response.ok) {
+      throw new Error(`All API endpoints failed`);
     }
 
     stations = await response.json();
+    console.log(`Received ${stations.length} stations from ${finalEndpoint}`);
 
     // Filter stations with valid URLs and remove duplicates
     stations = stations
@@ -140,18 +186,246 @@ async function fetchStations(searchTerm = "") {
 
     renderStations();
     updateGlobeWithStations();
-    // Do NOT auto-play on load anymore
-    // if (currentStationIndex === 0 && !isPlaying && stations.length > 0) {
-    //   playStation(0);
-    // }
+
+    // Show success message that real API data is loaded
+    showToast(`Loaded ${stations.length} stations successfully!`, "success");
   } catch (error) {
     console.error("Error fetching stations:", error);
-    stationsContainer.innerHTML = `
-      <div class="col-span-3 text-center py-10">
-        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
-        <p class="text-xl">Failed to load stations. Please try again later.</p>
-      </div>
-    `;
+
+    // Use mock data for testing when API fails
+    console.log("API failed, using mock data for demonstration...");
+    stations = [
+      {
+        stationuuid: "mock-1",
+        name: "BBC Radio 1",
+        country: "United Kingdom",
+        state: "England",
+        url_resolved: "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
+        favicon: "https://static.mytuner.mobi/media/tvos_radios/2LS2zx3Geb.png",
+        tags: "pop, rock, music, entertainment",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-2",
+        name: "NPR News",
+        country: "United States",
+        state: "Washington DC",
+        url_resolved: "https://npr-ice.streamguys1.com/live.mp3",
+        favicon: "https://media.npr.org/chrome_svg/npr-logo.svg",
+        tags: "news, talk, current affairs",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-3",
+        name: "Radio France Info",
+        country: "France",
+        state: "Paris",
+        url_resolved: "https://icecast.radiofrance.fr/franceinfo-lofi.mp3",
+        favicon: "https://www.francetvinfo.fr/static/img/favicon.ico",
+        tags: "news, french, information",
+        language: "french",
+      },
+      {
+        stationuuid: "mock-4",
+        name: "Classic FM",
+        country: "United Kingdom",
+        state: "England",
+        url_resolved: "http://media-ice.musicradio.com/ClassicFMMP3",
+        favicon:
+          "https://planetradio.co.uk/common-images/stations/classicfm.png",
+        tags: "classical, music, orchestral",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-5",
+        name: "Radio Cidade",
+        country: "Brazil",
+        state: "Rio de Janeiro",
+        url_resolved: "https://centova.svdns.com.br:20020/;",
+        favicon: "https://radiocidade.am.br/favicon.ico",
+        tags: "brazilian, samba, latin music",
+        language: "portuguese",
+      },
+      {
+        stationuuid: "mock-6",
+        name: "Radio Tokyo FM",
+        country: "Japan",
+        state: "Tokyo",
+        url_resolved: "https://radio-tokyo.com/stream",
+        favicon: "https://www.tfm.co.jp/favicon.ico",
+        tags: "j-pop, japanese, tokyo",
+        language: "japanese",
+      },
+      {
+        stationuuid: "mock-7",
+        name: "KEXP 90.3 FM",
+        country: "United States",
+        state: "Washington",
+        url_resolved: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3",
+        favicon: "https://kexp.org/favicon.ico",
+        tags: "alternative, indie, experimental",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-8",
+        name: "Radio Swiss Jazz",
+        country: "Switzerland",
+        state: "Zurich",
+        url_resolved: "http://stream.srg-ssr.ch/m/rsj/mp3_128",
+        favicon: "https://www.radioswissjazz.ch/favicon.ico",
+        tags: "jazz, smooth jazz, contemporary",
+        language: "multilingual",
+      },
+      {
+        stationuuid: "mock-9",
+        name: "ABC Jazz",
+        country: "Australia",
+        state: "Sydney",
+        url_resolved: "https://live-radio01.mediahubaustralia.com/2JJW/mp3/",
+        favicon: "https://www.abc.net.au/favicon.ico",
+        tags: "jazz, australian, contemporary",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-10",
+        name: "Radio Paradise",
+        country: "United States",
+        state: "California",
+        url_resolved: "https://stream.radioparadise.com/aac-320",
+        favicon: "https://radioparadise.com/favicon.ico",
+        tags: "eclectic, world music, alternative",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-11",
+        name: "FIP Radio",
+        country: "France",
+        state: "Paris",
+        url_resolved: "https://icecast.radiofrance.fr/fip-hifi.aac",
+        favicon: "https://www.fip.fr/favicon.ico",
+        tags: "eclectic, world, electronic, jazz",
+        language: "french",
+      },
+      {
+        stationuuid: "mock-12",
+        name: "Triple J",
+        country: "Australia",
+        state: "Sydney",
+        url_resolved: "https://live-radio01.mediahubaustralia.com/2TJW/mp3/",
+        favicon: "https://www.abc.net.au/triplej/favicon.ico",
+        tags: "alternative, indie, australian",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-13",
+        name: "SomaFM Groove Salad",
+        country: "United States",
+        state: "California",
+        url_resolved: "https://ice1.somafm.com/groovesalad-256-mp3",
+        favicon: "https://somafm.com/favicon.ico",
+        tags: "ambient, electronic, chill",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-14",
+        name: "Radio Nacional Argentina",
+        country: "Argentina",
+        state: "Buenos Aires",
+        url_resolved: "https://sa.mp3.icecast.magma.edge-access.net/sc_rad37",
+        favicon: "https://www.radionacional.com.ar/favicon.ico",
+        tags: "tango, latin, news, talk",
+        language: "spanish",
+      },
+      {
+        stationuuid: "mock-15",
+        name: "NRK P3",
+        country: "Norway",
+        state: "Oslo",
+        url_resolved: "https://lyd.nrk.no/nrk_radio_p3_mp3_h",
+        favicon: "https://www.nrk.no/favicon.ico",
+        tags: "pop, rock, norwegian",
+        language: "norwegian",
+      },
+      {
+        stationuuid: "mock-16",
+        name: "Radio Studio Souto",
+        country: "Italy",
+        state: "Milan",
+        url_resolved: "https://www.radiosouto.it/stream",
+        favicon: "https://www.radiosouto.it/favicon.ico",
+        tags: "italian, pop, contemporary",
+        language: "italian",
+      },
+      {
+        stationuuid: "mock-17",
+        name: "BBC Radio 6 Music",
+        country: "United Kingdom",
+        state: "London",
+        url_resolved: "http://stream.live.vc.bbcmedia.co.uk/bbc_6music",
+        favicon: "https://static.mytuner.mobi/media/tvos_radios/bbc6music.png",
+        tags: "alternative, indie, rock",
+        language: "english",
+      },
+      {
+        stationuuid: "mock-18",
+        name: "Radio Swiss Pop",
+        country: "Switzerland",
+        state: "Bern",
+        url_resolved: "http://stream.srg-ssr.ch/m/rsp/mp3_128",
+        favicon: "https://www.radioswiss.ch/favicon.ico",
+        tags: "pop, swiss, contemporary",
+        language: "multilingual",
+      },
+      {
+        stationuuid: "mock-19",
+        name: "Deutschlandfunk",
+        country: "Germany",
+        state: "Cologne",
+        url_resolved: "https://st01.sslstream.dlf.de/dlf/01/128/mp3/stream.mp3",
+        favicon: "https://www.deutschlandfunk.de/favicon.ico",
+        tags: "news, talk, culture, german",
+        language: "german",
+      },
+      {
+        stationuuid: "mock-20",
+        name: "Ibiza Global Radio",
+        country: "Spain",
+        state: "Ibiza",
+        url_resolved: "https://ibizaglobalradio.streaming-pro.com:8024/stream",
+        favicon: "https://www.ibizaglobalradio.com/favicon.ico",
+        tags: "electronic, dance, house, techno",
+        language: "spanish",
+      },
+    ];
+
+    // Filter mock stations by search term if provided
+    if (searchTerm) {
+      stations = stations.filter(
+        (station) =>
+          station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          station.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          station.tags.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (stations.length === 0) {
+      stationsContainer.innerHTML = `
+        <div class="col-span-3 text-center py-10">
+          <i class="fas fa-satellite-dish text-4xl text-gray-500 mb-4"></i>
+          <p class="text-xl">No stations found. Try a different search term.</p>
+        </div>
+      `;
+      return;
+    }
+
+    renderStations();
+    updateGlobeWithStations();
+
+    // Show info that we're using demo data
+    showToast(
+      `API temporarily unavailable - showing ${stations.length} demo stations`,
+      "info"
+    );
   }
 }
 
@@ -606,6 +880,305 @@ function initEventListeners() {
 
   // Add authentication event listeners
   addAuthEventListeners();
+
+  // Add these event listeners and functions for audio controls
+
+  // Event Listeners for Player Controls
+  document.addEventListener("DOMContentLoaded", function () {
+    // Play/Pause button
+    document
+      .getElementById("playPauseBtn")
+      .addEventListener("click", togglePlayPause);
+
+    // Previous/Next buttons
+    document
+      .getElementById("prevBtn")
+      .addEventListener("click", playPreviousStation);
+    document
+      .getElementById("nextBtn")
+      .addEventListener("click", playNextStation);
+
+    // Volume controls
+    document
+      .getElementById("volumeSlider")
+      .addEventListener("input", updateVolume);
+    document.getElementById("muteBtn").addEventListener("click", toggleMute);
+
+    // Favorite button
+    document
+      .getElementById("favoriteBtn")
+      .addEventListener("click", toggleFavorite);
+
+    // Audio event listeners
+    audio.addEventListener("loadstart", onAudioLoadStart);
+    audio.addEventListener("canplay", onAudioCanPlay);
+    audio.addEventListener("play", onAudioPlay);
+    audio.addEventListener("pause", onAudioPause);
+    audio.addEventListener("error", onAudioError);
+    audio.addEventListener("timeupdate", updateProgress);
+  });
+
+  // Play/Pause functionality
+  function togglePlayPause() {
+    if (isPlaying) {
+      pauseStation();
+    } else {
+      if (stations.length > 0) {
+        playStation(stations[currentStationIndex]);
+      } else {
+        showToast("No stations available to play", "error");
+      }
+    }
+  }
+
+  // Play station function
+  function playStation(station) {
+    if (!station || !station.url_resolved) {
+      showToast("Invalid station URL", "error");
+      return;
+    }
+
+    try {
+      // Stop current audio
+      audio.pause();
+      audio.currentTime = 0;
+
+      // Set new source
+      audio.src = station.url_resolved;
+
+      // Update UI immediately
+      updateNowPlayingInfo(station);
+      updatePlayPauseButton(true);
+
+      // Add to history
+      addToHistory(station);
+
+      // Show loading state
+      showToast("Loading station...", "info");
+
+      // Load and play
+      audio.load();
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            isPlaying = true;
+            updatePlayPauseButton(true);
+            showToast(`Now playing: ${station.name}`, "success");
+          })
+          .catch((error) => {
+            console.error("Playback failed:", error);
+            isPlaying = false;
+            updatePlayPauseButton(false);
+            showToast("Failed to play station. Trying next...", "error");
+
+            // Auto-try next station if current fails
+            setTimeout(() => playNextStation(), 2000);
+          });
+      }
+    } catch (error) {
+      console.error("Error playing station:", error);
+      showToast("Error playing station", "error");
+      isPlaying = false;
+      updatePlayPauseButton(false);
+    }
+  }
+
+  // Pause station function
+  function pauseStation() {
+    audio.pause();
+    isPlaying = false;
+    updatePlayPauseButton(false);
+    showToast("Playback paused", "info");
+  }
+
+  // Previous station function
+  function playPreviousStation() {
+    if (stations.length === 0) {
+      showToast("No stations available", "error");
+      return;
+    }
+
+    currentStationIndex =
+      currentStationIndex > 0 ? currentStationIndex - 1 : stations.length - 1;
+    playStation(stations[currentStationIndex]);
+  }
+
+  // Next station function
+  function playNextStation() {
+    if (stations.length === 0) {
+      showToast("No stations available", "error");
+      return;
+    }
+
+    currentStationIndex =
+      currentStationIndex < stations.length - 1 ? currentStationIndex + 1 : 0;
+    playStation(stations[currentStationIndex]);
+  }
+
+  // Update play/pause button
+  function updatePlayPauseButton(playing) {
+    const btn = document.getElementById("playPauseBtn");
+    const icon = btn.querySelector("i");
+
+    if (playing) {
+      icon.className = "fas fa-pause";
+      btn.setAttribute("aria-label", "Pause");
+    } else {
+      icon.className = "fas fa-play";
+      btn.setAttribute("aria-label", "Play");
+    }
+  }
+
+  // Update now playing info
+  function updateNowPlayingInfo(station) {
+    document.getElementById("stationName").textContent =
+      station.name || "Unknown Station";
+    document.getElementById("stationLocation").textContent = `${
+      station.country || "Unknown"
+    }, ${station.state || ""}`;
+
+    // Update logo
+    const logo = document.getElementById("stationLogo");
+    if (station.favicon && station.favicon !== "") {
+      logo.src = station.favicon;
+      logo.onerror = () => {
+        logo.src = "https://placehold.co/40x40/666/fff?text=♪";
+      };
+    } else {
+      logo.src = "https://placehold.co/40x40/666/fff?text=♪";
+    }
+  }
+
+  // Volume control
+  function updateVolume(event) {
+    const volume = event.target.value / 100;
+    audio.volume = volume;
+
+    // Update mute button icon
+    const muteBtn = document.getElementById("muteBtn");
+    const icon = muteBtn.querySelector("i");
+
+    if (volume === 0) {
+      icon.className = "fas fa-volume-mute";
+    } else if (volume < 0.5) {
+      icon.className = "fas fa-volume-down";
+    } else {
+      icon.className = "fas fa-volume-up";
+    }
+  }
+
+  // Toggle mute
+  function toggleMute() {
+    const volumeSlider = document.getElementById("volumeSlider");
+
+    if (audio.volume > 0) {
+      audio.dataset.previousVolume = audio.volume;
+      audio.volume = 0;
+      volumeSlider.value = 0;
+    } else {
+      const previousVolume = audio.dataset.previousVolume || 0.7;
+      audio.volume = previousVolume;
+      volumeSlider.value = previousVolume * 100;
+    }
+
+    updateVolume({ target: volumeSlider });
+  }
+
+  // Toggle favorite
+  function toggleFavorite() {
+    if (stations.length === 0 || !stations[currentStationIndex]) {
+      showToast("No station to favorite", "error");
+      return;
+    }
+
+    const station = stations[currentStationIndex];
+    const favoriteBtn = document.getElementById("favoriteBtn");
+    const icon = favoriteBtn.querySelector("i");
+
+    const isFavorited = favorites.some(
+      (fav) => fav.stationuuid === station.stationuuid
+    );
+
+    if (isFavorited) {
+      // Remove from favorites
+      favorites = favorites.filter(
+        (fav) => fav.stationuuid !== station.stationuuid
+      );
+      icon.className = "fas fa-heart";
+      icon.classList.remove("text-red-500");
+      icon.classList.add("text-gray-400");
+      showToast("Removed from favorites", "info");
+    } else {
+      // Add to favorites
+      favorites.push(station);
+      icon.className = "fas fa-heart";
+      icon.classList.remove("text-gray-400");
+      icon.classList.add("text-red-500");
+      showToast("Added to favorites", "success");
+    }
+
+    // Save to localStorage
+    localStorage.setItem("radioFavorites", JSON.stringify(favorites));
+  }
+
+  // Add to history
+  function addToHistory(station) {
+    let history = JSON.parse(localStorage.getItem("radioHistory")) || [];
+
+    // Remove if already exists to avoid duplicates
+    history = history.filter(
+      (item) => item.stationuuid !== station.stationuuid
+    );
+
+    // Add to beginning
+    history.unshift({
+      ...station,
+      playedAt: new Date().toISOString(),
+    });
+
+    // Keep only last 50 items
+    history = history.slice(0, 50);
+
+    localStorage.setItem("radioHistory", JSON.stringify(history));
+  }
+
+  // Audio event handlers
+  function onAudioLoadStart() {
+    console.log("Audio loading started");
+  }
+
+  function onAudioCanPlay() {
+    console.log("Audio can play");
+  }
+
+  function onAudioPlay() {
+    isPlaying = true;
+    updatePlayPauseButton(true);
+  }
+
+  function onAudioPause() {
+    isPlaying = false;
+    updatePlayPauseButton(false);
+  }
+
+  function onAudioError(event) {
+    console.error("Audio error:", event);
+    isPlaying = false;
+    updatePlayPauseButton(false);
+    showToast("Failed to load audio stream", "error");
+  }
+
+  // Update progress (for radio streams, this might not work as expected)
+  function updateProgress() {
+    // For live radio streams, we can't show real progress
+    // But we can show that it's playing
+    if (isPlaying) {
+      document.getElementById("currentTime").textContent = "LIVE";
+      document.getElementById("duration").textContent = "∞";
+    }
+  }
 }
 
 // --- App Initialization ---

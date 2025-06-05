@@ -4,7 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Contact - CosmoTune</title>
+
+    <!-- Content Security Policy -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;
+      img-src 'self' data: https: http:;
+      media-src 'self' https: http:;
+      connect-src 'self' https://api.radio-browser.info https://*.api.radio-browser.info;
+      font-src 'self' https://cdnjs.cloudflare.com;
+      frame-src 'none';
+    "
+    />
+
+    <!-- Additional Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta
+      http-equiv="Referrer-Policy"
+      content="strict-origin-when-cross-origin"
+    />
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="text-white min-h-screen">
@@ -128,41 +157,6 @@
         color: #fff;
       "
     ></div>
-    <script>
-      // Keyboard navigation: focus first input on load
-      window.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("name").focus();
-      });
-      // Modern toast notification with gradient, centered, and longer duration
-      function showToast(message, type = "info") {
-        const toast = document.getElementById("toastNotification");
-        toast.textContent = message;
-        toast.style.background = "linear-gradient(90deg,#3b82f6,#8b5cf6)";
-        toast.style.color =
-          type === "error"
-            ? "#fee2e2"
-            : type === "success"
-            ? "#bbf7d0"
-            : "#fff";
-        toast.style.display = "block";
-        toast.style.opacity = "1";
-        setTimeout(() => {
-          toast.style.opacity = "0";
-          setTimeout(() => {
-            toast.style.display = "none";
-          }, 500);
-        }, 6000);
-      }
-      // Simple form handler (no backend)
-      document.querySelector("form").addEventListener("submit", function (e) {
-        e.preventDefault();
-        showToast(
-          "Thank you for contacting us! We will get back to you soon.",
-          "success"
-        );
-        this.reset();
-        document.getElementById("name").focus();
-      });
-    </script>
+    <script src="contact.js"></script>
   </body>
 </html>
